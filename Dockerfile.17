@@ -10,15 +10,15 @@ RUN apt-get update && apt-get install -y \
     sudo \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pgvector
-RUN git clone --branch v0.8.0 https://github.com/pgvector/pgvector.git && \
+# Install pgvector using tag
+RUN git clone --tag v0.8.0 https://github.com/pgvector/pgvector.git && \
     cd pgvector && \
     make && \
     make install && \
     cd .. && rm -rf pgvector
 
-# Install hypopg
-RUN git clone https://github.com/hypopg/hypopg.git && \
+# Install hypopg using tag
+RUN git clone --tag 1.4.1 https://github.com/hypopg/hypopg.git && \
     cd hypopg && \
     make && \
     make install && \
