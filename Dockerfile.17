@@ -1,7 +1,39 @@
-FROM postgres:17
+# Build stage
+FROM postgres:17 AS builder
 
-# Install OpenSSL and sudo
-RUN apt-get update && apt-get install -y openssl sudo
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    postgresql-server-dev-17 \
+    openssl \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pgvector
+RUN git clone --branch v0.8.0 https://github.com/pgvector/pgvector.git && \
+    cd pgvector && \
+    make && \
+    make install && \
+    cd .. && rm -rf pgvector
+
+# Install hypopg
+RUN git clone https://github.com/hypopg/hypopg.git && \
+    cd hypopg && \
+    make && \
+    make install && \
+    cd .. && rm -rf hypopg
+
+# Final stage
+FROM postgres:17
+COPY --from=builder /usr/lib/postgresql/17/lib /usr/lib/postgresql/17/lib
+COPY --from=builder /usr/share/postgresql/17/extension /usr/share/postgresql/17/extension
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    openssl \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
 
 # Allow the postgres user to execute certain commands as root without a password
 RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/openssl" > /etc/sudoers.d/postgres
@@ -9,6 +41,9 @@ RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/ope
 # Add init scripts while setting permissions
 COPY --chmod=755 init-ssl.sh /docker-entrypoint-initdb.d/init-ssl.sh
 COPY --chmod=755 wrapper.sh /usr/local/bin/wrapper.sh
+
+# Copy a custom init script to enable extensions
+COPY --chmod=755 init-extensions.sql /docker-entrypoint-initdb.d/init-extensions.sql
 
 ENTRYPOINT ["wrapper.sh"]
 CMD ["postgres", "-p", "5432", "-c", "listen_addresses=*"]
