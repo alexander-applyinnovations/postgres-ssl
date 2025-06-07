@@ -46,4 +46,4 @@ COPY --chmod=755 wrapper.sh /usr/local/bin/wrapper.sh
 COPY --chmod=755 init-extensions.sql /docker-entrypoint-initdb.d/init-extensions.sql
 
 ENTRYPOINT ["wrapper.sh"]
-CMD ["postgres", "-p", "5432", "-c", "listen_addresses=*"]
+CMD ["postgres", "-p", "5432", "-c", "listen_addresses=*", "-c", "shared_preload_libraries=pg_stat_statements"]
